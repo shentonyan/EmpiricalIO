@@ -160,26 +160,15 @@ compute_ccp <-
         G, 
         delta
         )
-    # compute the numerator
-    numerator <- exp(value)
-    # compute the denominator
-    aggregator <- 
-      matrix(
-        rep(1, (K + 1) * (K + 1)), 
-        ncol = K + 1
-        )
-    aggregator <- 
-      replicate(
-        L, 
-        aggregator, 
-        simplify = FALSE
-        )
-    aggregator <-
-      Matrix::bdiag(aggregator) %>%
-      as.matrix()
-    denominator <- aggregator %*% numerator
-    # compute the conditional choice probability
-    p <- numerator / denominator
+    if (length(value) != L * (K + 1) || any(!is.finite(value))) {
+      stop("Choice values must be finite and match L * (K + 1).")
+    }
+    # Columns are states; rows are actions within a state.
+    values <- matrix(as.numeric(value), nrow = K + 1, ncol = L)
+    centered <- sweep(values, 2, apply(values, 2, max), "-")
+    numerator <- exp(centered)
+    p <- value
+    p[] <- as.vector(sweep(numerator, 2, colSums(numerator), "/"))
     return(p)
   }
 
@@ -191,12 +180,33 @@ solve_dynamic_decision <-
     L, 
     K,
     delta, 
-    lambda
+    lambda,
+    max_iter = 1000L
     ) {
+    if (length(L) != 1L || !is.finite(L) || L < 1 || L != floor(L) ||
+        length(K) != 1L || !is.finite(K) || K < 0 || K != floor(K)) {
+      stop("L and K must be integers with L >= 1 and K >= 0.")
+    }
+    if (length(delta) != 1L || !is.finite(delta) || delta < 0 || delta >= 1) {
+      stop("The discount factor must satisfy 0 <= delta < 1.")
+    }
+    if (length(lambda) != 1L || !is.finite(lambda) || lambda <= 0 ||
+        length(max_iter) != 1L || !is.finite(max_iter) ||
+        max_iter < 1 || max_iter != floor(max_iter)) {
+      stop("lambda must be positive and max_iter must be a positive integer.")
+    }
+    PI <- as.matrix(PI)
+    G <- as.matrix(G)
+    if (!identical(dim(PI), c(as.integer(L * (K + 1)), 1L)) ||
+        !identical(dim(G), c(as.integer(L * (K + 1)), as.integer(L))) ||
+        any(!is.finite(PI)) || any(!is.finite(G)) || any(G < 0) ||
+        any(abs(rowSums(G) - 1) > 1e-10)) {
+      stop("PI and G must have compatible dimensions and G must be row-stochastic.")
+    }
     # initial value
     p <- 
       matrix(
-        rep(0.5, L * (K + 1)),
+        rep(1 / (K + 1), L * (K + 1)),
         ncol = 1
         )
     V <- 
@@ -208,9 +218,8 @@ solve_dynamic_decision <-
         K, 
         delta
         )
-    distance <- 10000
-    while (distance > lambda) {
-      V_old <- V
+    residual <- Inf
+    for (iteration in seq_len(max_iter)) {
       p <- 
         compute_ccp(
           V,
@@ -229,14 +238,25 @@ solve_dynamic_decision <-
           K,
           delta
           )
-      distance <- max(abs(V - V_old))
+      if (any(!is.finite(V))) stop("Value iteration produced non-finite values.")
+      values <- matrix(compute_choice_value(V, PI, G, delta),
+                       nrow = K + 1, ncol = L)
+      maxima <- apply(values, 2, max)
+      bellman_value <- -digamma(1) + maxima +
+        log(colSums(exp(sweep(values, 2, maxima, "-"))))
+      residual <- max(abs(as.numeric(V) - bellman_value))
+      if (residual <= lambda) {
+        return(list(
+          p = compute_ccp(V, PI, G, L, K, delta),
+          V = V,
+          iterations = iteration,
+          residual = residual,
+          converged = TRUE
+        ))
+      }
     }
-    return(
-      list(
-        p = p,
-        V = V
-        )
-      ) 
+    stop(sprintf("Dynamic decision solver did not converge in %d iterations (Bellman residual %.6g).",
+                 max_iter, residual))
   }
 
 # simulate the dynamic decision model for a single player

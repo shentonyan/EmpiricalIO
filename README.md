@@ -48,6 +48,18 @@ They compare uniform-value auctions with analytic bidding solutions and
 check inversion, reserve-price endpoints, and invalid bids. A failed check
 returns a nonzero exit status.
 
+The dynamic decision checks need `foreach`, `magrittr`, and `Matrix`:
+
+```sh
+Rscript --vanilla tests/dynamics.R
+```
+
+They compare the solver with an independent Bellman iteration and check
+large utility shifts, multiple actions, and failure to converge. The solver
+retains its `p` and `V` outputs and also returns `iterations`, `residual`, and
+`converged`. `residual` is the maximum absolute Bellman equation error;
+the solver stops with an error if `max_iter` is reached before convergence.
+
 ## Usage
 
 The source files of the lecture notes are in `/lecture`.

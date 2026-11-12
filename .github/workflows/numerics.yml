@@ -21,6 +21,7 @@ jobs:
       - name: Install package dependencies
         shell: Rscript --vanilla {0}
         run: |
+          options(repos = c(CRAN = Sys.getenv("RSPM", "https://cloud.r-project.org")))
           install.packages(c("Rcpp", "RcppEigen", "dplyr", "foreach", "magrittr",
                              "nleqslv", "purrr", "reshape2", "rmarkdown", "tidyr"))
       - name: Compile and install the package
@@ -28,3 +29,6 @@ jobs:
       - name: Check installed auction functions
         working-directory: tests
         run: Rscript --vanilla auction.R
+      - name: Check installed dynamic decision functions
+        working-directory: tests
+        run: Rscript --vanilla dynamics.R
