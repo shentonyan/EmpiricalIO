@@ -1,4 +1,8 @@
 useDynLib(EmpiricalIO)
 import(RcppEigen)
 importFrom(Rcpp, evalCpp)
+importFrom(foreach, foreach, "%do%", "%dopar%")
+importFrom(magrittr, "%>%")
+import(stats)
+import(utils)
 exportPattern("^[[:alpha:]]+")

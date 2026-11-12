@@ -65,6 +65,9 @@ bid_first <-
     beta,
     n
     ) {
+    # The integral and F(x)^(n - 1) both vanish at x = r = 0.
+    # Use the boundary value instead of evaluating their ratio.
+    if (x == r) return(r)
     if (x >= r) {
       numerator <- 
         integrate(
@@ -261,6 +264,18 @@ inverse_bid_first <-
     beta,
     n
     ) {
+    if (length(n) != 1L || !is.finite(n) || n < 2 || n != floor(n)) {
+      stop("Inverse bidding requires an integer n >= 2.")
+    }
+    if (length(r) != 1L || !is.finite(r) || r < 0 || r >= 1) {
+      stop("Inverse bidding requires 0 <= r < 1.")
+    }
+    upper_bid <- bid_first(1, r, alpha, beta, n)
+    if (length(b) != 1L || !is.finite(b) || b < r || b > upper_bid) {
+      stop("Bid is outside the equilibrium support [r, b(1)].")
+    }
+    if (b == r) return(r)
+    if (b == upper_bid) return(1)
     x <-
       uniroot(
         f = inverse_bid_equation, 
@@ -270,7 +285,8 @@ inverse_bid_first <-
         beta = beta, 
         r = r,
         n = n, 
-        b = b
+        b = b,
+        tol = .Machine$double.eps^0.75
         )
     x <- x$root
     return(x)

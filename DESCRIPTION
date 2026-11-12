@@ -1,12 +1,16 @@
 Package: EmpiricalIO
 Type: Package
-Title: What the package does (short line)
+Title: Code and Exercises for Empirical Industrial Organization
 Version: 1.0
 Date: 2019-01-29
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one
-      line)
-License: What license is it under?
-Imports: Rcpp (>= 1.0.0), RcppEigen (>= 0.3.3.4.0), devtools (>= 2.4.5)
+Author: Kohei Kawaguchi
+Maintainer: Kohei Kawaguchi <kohei.kawagucci@gmail.com>
+Description: R and C++ functions accompanying lecture notes and exercises
+    on production, demand, mergers, entry, dynamic decisions, and auctions.
+License: MIT + file LICENSE
+Imports: Rcpp (>= 1.0.0), RcppEigen (>= 0.3.3.4.0), dplyr, foreach,
+    magrittr, Matrix, nleqslv, purrr, reshape2, rmarkdown, stats, tibble,
+    tidyr, utils
 LinkingTo: Rcpp, RcppEigen
+Suggests: bookdown, devtools, renv
+Encoding: UTF-8

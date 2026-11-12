@@ -1,0 +1,116 @@
+---
+title: "Inventory, participation, and bidding"
+output:
+  html_document:
+    toc: true
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+source("inventory_auction.R")
+```
+
+## The decision
+
+A buyer sells one unit when demand arrives and can buy at most one unit in
+each auction. A purchase can serve today's demand or remain in inventory
+for a later period. Entering an auction costs a fixed fee, whether or not
+the buyer wins.
+
+The highest rival bid is an exogenous random threshold. If the buyer bids
+at least this threshold, it wins and pays the threshold. Rival bids do not
+respond to the buyer's inventory or policy. This is a single-agent
+inventory problem with auction purchases; it does not solve a dynamic
+equilibrium among bidders.
+
+All quantities below are chosen for this exercise. They are not estimates
+from an industry dataset.
+
+## Timing and Bellman equation
+
+1. Observe beginning inventory $s \in \{0,1,2,3\}$.
+2. Choose a bid $b \in \{0,0.5,1,1.5,2\}$. Zero means no participation.
+3. Draw the rival-bid threshold $z$ and execute the purchase. Let
+   $w=\mathbf{1}\{b>0,\ z\le b\}$.
+4. Draw demand $d\in\{0,1\}$. Serve $y=\min(s+w,d)$ and carry
+   $s'=s+w-y$ into the next period.
+
+A full inventory permits only no participation, so the capacity constraint
+also holds before demand is realized. Thresholds and demand are independent
+across periods and independent of one another. Ties with the threshold are
+won by the buyer.
+
+With sales revenue $m$, entry fee $k$, holding cost $h$, and discount factor
+$\delta$, the Bellman equation is
+
+$$
+V(s)=\max_{b\in B(s)}\mathbb{E}_{z,d}
+\left[m y-z w-k\mathbf{1}\{b>0\}-h s'+\delta V(s')\right].
+$$
+
+The threshold has equal probability on $\{0.25,0.75,1.25,1.75\}$.
+Demand arrives with probability $0.6$. The baseline uses $m=2.4$, $k=0.08$,
+$h=0.08$, and $\delta=0.95$. The expectation is calculated by enumerating
+every threshold-demand combination; there is no simulation error in the
+Bellman calculation. Bids remain restricted to the stated finite grid.
+
+## Solve and check the policy
+
+```{r solve}
+model <- inventory_model()
+fit <- solve_inventory(model)
+myopic_model <- model
+myopic_model$discount <- 0
+myopic <- solve_inventory(myopic_model)
+knitr::kable(data.frame(inventory = model$states,
+                       dynamic_bid = fit$bid, myopic_bid = myopic$bid))
+fit$residual
+fit$error_bound
+```
+
+The reported residual is $\|T V-V\|_\infty$. Since $T$ is a contraction,
+the value-function error is bounded by the residual divided by
+$1-\delta$. This bounds numerical solution error for this finite model;
+it does not bound error from the bid grid or the economic assumptions.
+
+## Compare simulated paths
+
+The next calculation uses 30 independent replications, each with 200 burn-in
+periods followed by 2,000 measured periods. Within each replication all
+policies face the same threshold and demand draws. The myopic policy
+maximizes current profit and ignores continuation value. The third policy
+never participates and starts with empty inventory.
+
+```{r compare}
+result_dir <- file.path(tempdir(), "inventory-auction")
+results <- run_inventory_example(result_dir, verbose = FALSE)
+knitr::kable(results$summary, digits = 4)
+knitr::kable(results$comparison, digits = 4)
+```
+
+```{r figure, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(result_dir, "inventory-auction.png"), rel_path = FALSE)
+```
+
+Error bars are 95% t intervals for the mean simulated profit across
+replications. The paired comparison uses the profit difference within
+each replication. These intervals describe Monte Carlo uncertainty under
+the stated model. Long-run simulated average profit is a separate metric
+from the discounted objective used to choose the dynamic policy.
+
+## Exercises
+
+1. Change the entry fee and holding cost separately. Report the full policy
+   table and participation rate; do not infer a general monotonicity result
+   from one parameter setting.
+2. Refine the bid grid and compare values and policies at each inventory
+   level. Explain why changing the grid can change the policy even when
+   the Bellman residual is small.
+3. Replace the independent rival thresholds with a persistent price state.
+   Specify what the buyer observes before bidding and include that state
+   in the transition law.
+
+The example connects the repository's auction chapter and single-agent
+dynamic decision chapter. The base R script runs independently of the
+course package and does not change the assessed assignments.
