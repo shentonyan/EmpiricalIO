@@ -80,3 +80,20 @@ Both formats are written to `docs/`. For a local preview, use
 `Rscript main/build_book.R serve`; the preview server runs until stopped.
 Assignments contain simulations and estimation, so building the complete
 book can take substantially longer than running the regression checks.
+
+## Inventory and auction example
+
+An optional [worked example](inst/examples/inventory-auction.Rmd) links
+inventory, auction participation, and bidding. It solves a single buyer's
+problem against exogenous rival-bid thresholds; rival strategies are held
+fixed. It uses simulated data and is separate from the course assignments.
+
+```sh
+Rscript --vanilla tests/inventory-auction.R
+Rscript --vanilla inst/examples/inventory_auction.R
+```
+
+The second command writes policy tables, replication results, settings,
+and a figure to `outputs/inventory-auction/`. The example uses base R.
+To render the explanatory document, run
+`rmarkdown::render("inst/examples/inventory-auction.Rmd")` in R.

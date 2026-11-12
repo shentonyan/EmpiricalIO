@@ -32,3 +32,6 @@ jobs:
       - name: Check installed dynamic decision functions
         working-directory: tests
         run: Rscript --vanilla dynamics.R
+      - name: Check installed inventory auction example
+        working-directory: tests
+        run: Rscript --vanilla inventory-auction.R
